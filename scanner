@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>QR Material Scanner</title>
+
+
+  <!-- QR SCANNER LIBRARY -->
+
+  <script
+    src="https://unpkg.com/html5-qrcode"
+    type="text/javascript">
+  </script>
+
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+
+    body {
+
+      margin: 0;
+
+      padding: 20px;
+
+      font-family:
+        Arial,
+        sans-serif;
+
+      background:
+        #f3f6f9;
+
+      color:
+        #222;
+    }
+
+
+    .container {
+
+      max-width:
+        600px;
+
+      margin:
+        auto;
+    }
+
+
+    .header {
+
+      background:
+        #1f4e78;
+
+      color:
+        white;
+
+      padding:
+        20px;
+
+      border-radius:
+        14px;
+
+      text-align:
+        center;
+
+      margin-bottom:
+        20px;
+    }
+
+
+    .header h1 {
+
+      margin:
+        0;
+
+      font-size:
+        24px;
+    }
+
+
+    .header p {
+
+      margin:
+        8px 0 0;
+
+      font-size:
+        14px;
+    }
+
+
+    .card {
+
+      background:
+        white;
+
+      padding:
+        20px;
+
+      border-radius:
+        14px;
+
+      box-shadow:
+        0 2px 10px
+        rgba(0,0,0,0.08);
+    }
+
+
+    #reader {
+
+      width:
+        100%;
+    }
+
+
+    button {
+
+      width:
+        100%;
+
+      padding:
+        14px;
+
+      margin-top:
+        12px;
+
+      border:
+        none;
+
+      border-radius:
+        9px;
+
+      background:
+        #1f4e78;
+
+      color:
+        white;
+
+      font-size:
+        16px;
+
+      font-weight:
+        bold;
+    }
+
+
+    .stop {
+
+      background:
+        #6c757d;
+    }
+
+
+    .status {
+
+      margin-top:
+        15px;
+
+      padding:
+        14px;
+
+      border-radius:
+        9px;
+
+      background:
+        #eef2f5;
+
+      line-height:
+        1.5;
+
+      white-space:
+        pre-line;
+    }
+
+
+    .success {
+
+      background:
+        #d1e7dd;
+
+      color:
+        #0f5132;
+    }
+
+
+    .error {
+
+      background:
+        #f8d7da;
+
+      color:
+        #842029;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+  <div class="header">
+
+    <h1>
+      QR Material Scanner
+    </h1>
+
+    <p>
+      Raw Material Inventory
+    </p>
+
+  </div>
+
+
+  <div class="card">
+
+
+    <!-- CAMERA -->
+
+    <div
+      id="reader">
+    </div>
+
+
+    <!-- START CAMERA -->
+
+    <button
+      onclick="startScanner()"
+    >
+      START CAMERA
+    </button>
+
+
+    <!-- STOP CAMERA -->
+
+    <button
+      class="stop"
+      onclick="stopScanner()"
+    >
+      STOP CAMERA
+    </button>
+
+
+    <!-- STATUS -->
+
+    <div
+      id="status"
+      class="status"
+    >
+      Press START CAMERA and
+      allow camera permission.
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+<script>
+
+
+  /*
+   * =====================================================
+   * GET RETURN URL
+   * =====================================================
+   */
+
+  const urlParams =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  const returnUrl =
+    urlParams.get(
+      "returnUrl"
+    );
+
+
+  let scanner =
+    null;
+
+
+  let cameraRunning =
+    false;
+
+
+  /*
+   * =====================================================
+   * STATUS MESSAGE
+   * =====================================================
+   */
+
+  function showStatus(
+    message,
+    type = ""
+  ) {
+
+    const status =
+      document.getElementById(
+        "status"
+      );
+
+
+    status.className =
+      "status " + type;
+
+
+    status.textContent =
+      message;
+
+  }
+
+
+  /*
+   * =====================================================
+   * START CAMERA
+   * =====================================================
+   */
+
+  async function startScanner() {
+
+
+    if (
+      cameraRunning
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      !returnUrl
+    ) {
+
+      showStatus(
+
+        "The scanner has no return URL." +
+        "\n\n" +
+        "Open the scanner from your " +
+        "Google Apps Script inventory system.",
+
+        "error"
+
+      );
+
+      return;
+
+    }
+
+
+    showStatus(
+      "Requesting camera permission..."
+    );
+
+
+    try {
+
+
+      /*
+       * Create scanner
+       */
+
+      scanner =
+        new Html5Qrcode(
+          "reader"
+        );
+
+
+      /*
+       * Start rear camera
+       */
+
+      await scanner.start(
+
+        {
+          facingMode:
+            "environment"
+        },
+
+
+        {
+          fps:
+            10,
+
+          qrbox: {
+
+            width:
+              250,
+
+            height:
+              250
+
+          }
+
+        },
+
+
+        /*
+         * QR CODE FOUND
+         */
+
+        function(
+          decodedText
+        ) {
+
+
+          showStatus(
+
+            "QR detected: " +
+            decodedText,
+
+            "success"
+
+          );
+
+
+          cameraRunning =
+            false;
+
+
+          /*
+           * Stop camera
+           */
+
+          scanner
+            .stop()
+            .then(
+              function() {
+
+
+                scanner.clear();
+
+
+                /*
+                 * Create Google Apps Script URL
+                 */
+
+                const target =
+                  new URL(
+                    returnUrl
+                  );
+
+
+                /*
+                 * Add scanned QR value
+                 *
+                 * Example:
+                 *
+                 * RM001
+                 */
+
+                target.searchParams.set(
+
+                  "materialId",
+
+                  decodedText
+
+                );
+
+
+                showStatus(
+
+                  "QR scanned.\n" +
+                  "Returning to inventory system..."
+
+                );
+
+
+                /*
+                 * RETURN TO GOOGLE APPS SCRIPT
+                 */
+
+                window.location.href =
+                  target.toString();
+
+
+              }
+            )
+
+            .catch(
+              function(error) {
+
+                console.error(
+                  error
+                );
+
+              }
+            );
+
+        },
+
+
+        /*
+         * NORMAL SCANNING ERRORS
+         *
+         * Ignore these because
+         * they occur continuously
+         * while searching for QR.
+         */
+
+        function(
+          errorMessage
+        ) {
+
+        }
+
+      );
+
+
+      cameraRunning =
+        true;
+
+
+      showStatus(
+
+        "Camera is active.\n\n" +
+        "Point your camera at the QR code."
+
+      );
+
+
+    }
+
+    catch (
+      error
+    ) {
+
+
+      console.error(
+        error
+      );
+
+
+      cameraRunning =
+        false;
+
+
+      showStatus(
+
+        "Camera could not start.\n\n" +
+
+        "Check:\n" +
+
+        "1. Camera permission is allowed.\n" +
+
+        "2. You are using the HTTPS GitHub Pages URL.\n" +
+
+        "3. Your browser supports camera access.",
+
+        "error"
+
+      );
+
+    }
+
+  }
+
+
+  /*
+   * =====================================================
+   * STOP CAMERA
+   * =====================================================
+   */
+
+  async function stopScanner() {
+
+
+    if (
+      !scanner ||
+      !cameraRunning
+    ) {
+
+      showStatus(
+        "Camera is not running."
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+
+      await scanner.stop();
+
+
+      scanner.clear();
+
+
+    }
+
+    catch (
+      error
+    ) {
+
+      console.error(
+        error
+      );
+
+    }
+
+
+    cameraRunning =
+      false;
+
+
+    showStatus(
+      "Camera stopped."
+    );
+
+  }
+
+
+</script>
+
+
+</body>
+
+</html>
